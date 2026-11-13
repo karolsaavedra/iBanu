@@ -35,3 +35,7 @@ credentials/
 # IDE
 .vscode/*
 !.vscode/extensions.json
+
+# Documentos academicos originales y datos procesados
+rag/documents/
+rag/processed/
