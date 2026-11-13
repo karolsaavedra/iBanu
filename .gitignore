@@ -1,0 +1,37 @@
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+.expo/
+dist/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.bak
+
+# Credenciales
+*.pem
+*.key
+secrets/
+credentials/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
