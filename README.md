@@ -70,3 +70,31 @@ Las instrucciones de instalación y ejecución se documentarán a medida que se 
 ## Autoría
 
 Proyecto académico desarrollado para Ingeniería de Sistemas.
+
+## Evidencias del desarrollo
+
+Las evidencias del proyecto se organizan por etapas:
+
+| Carpeta | Contenido |
+|---|---|
+| `screenshots/01_entorno/` | Configuración de la VM e instalación de herramientas |
+| `screenshots/02_base_datos/` | Configuración de Supabase y PostgreSQL |
+| `screenshots/03_n8n/` | Instalación y automatizaciones |
+| `screenshots/04_rag/` | Procesamiento documental y recuperación de información |
+| `screenshots/05_backend/` | Desarrollo y pruebas del backend |
+| `screenshots/06_movil/` | Desarrollo de la aplicación móvil |
+| `screenshots/07_pruebas/` | Pruebas funcionales e integración |
+
+## Evidencias del desarrollo
+
+Las evidencias del proyecto se organizan por etapas:
+
+| Carpeta | Contenido |
+|---|---|
+| `screenshots/01_entorno/` | Configuración de la VM e instalación de herramientas |
+| `screenshots/02_base_datos/` | Configuración de Supabase y PostgreSQL |
+| `screenshots/03_n8n/` | Instalación y automatizaciones |
+| `screenshots/04_rag/` | Procesamiento documental y recuperación de información |
+| `screenshots/05_backend/` | Desarrollo y pruebas del backend |
+| `screenshots/06_movil/` | Desarrollo de la aplicación móvil |
+| `screenshots/07_pruebas/` | Pruebas funcionales e integración |
