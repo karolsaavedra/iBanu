@@ -26,6 +26,7 @@ Desarrollar un asistente conversacional que permita consultar información acad�
 - PostgreSQL y Supabase.
 - pgvector.
 - Gemini API.
+- Docker.
 - Azure Virtual Machines.
 - Git y GitHub.
 
@@ -49,12 +50,26 @@ La solución contempla una aplicación móvil, servicios de automatización con 
 
 Los datos personales, académicos, notas y matrículas utilizados para las pruebas serán sintéticos. La información institucional deberá verificarse con fuentes oficiales de la UNAB.
 
+## Entorno de desarrollo
+
+La infraestructura inicial se prepara sobre una máquina virtual Azure con Ubuntu 24.04.5 LTS.
+
+Herramientas instaladas:
+
+- Python 3.12.3.
+- Git 2.43.0.
+- Docker 29.1.3.
+- Docker Compose 2.40.3.
+- Python venv y pip.
+
 ## Estado del proyecto
 
 - [x] Creación del repositorio.
 - [x] Estructura inicial de carpetas.
 - [x] Configuración inicial de `.gitignore`.
-- [x] Documentación inicial.
+- [x] Instalación de herramientas del entorno.
+- [x] Documentación y evidencias iniciales.
+- [ ] Configuración de n8n.
 - [ ] Diseño de base de datos.
 - [ ] Configuración de Supabase y pgvector.
 - [ ] Implementación de RAG.
@@ -63,6 +78,20 @@ Los datos personales, académicos, notas y matrículas utilizados para las prueb
 - [ ] Desarrollo de la aplicación móvil.
 - [ ] Pruebas y documentación final.
 
+## Evidencias del desarrollo
+
+Las evidencias se organizan por etapas:
+
+| Carpeta | Contenido |
+|---|---|
+| `screenshots/01_entorno/` | Configuración de la VM e instalación de herramientas |
+| `screenshots/02_base_datos/` | Configuración de Supabase y PostgreSQL |
+| `screenshots/03_n8n/` | Instalación y automatizaciones |
+| `screenshots/04_rag/` | Procesamiento documental y recuperación de información |
+| `screenshots/05_backend/` | Desarrollo y pruebas del backend |
+| `screenshots/06_movil/` | Desarrollo de la aplicación móvil |
+| `screenshots/07_pruebas/` | Pruebas funcionales e integración |
+
 ## Ejecución
 
 Las instrucciones de instalación y ejecución se documentarán a medida que se implementen los componentes.
@@ -70,31 +99,3 @@ Las instrucciones de instalación y ejecución se documentarán a medida que se 
 ## Autoría
 
 Proyecto académico desarrollado para Ingeniería de Sistemas.
-
-## Evidencias del desarrollo
-
-Las evidencias del proyecto se organizan por etapas:
-
-| Carpeta | Contenido |
-|---|---|
-| `screenshots/01_entorno/` | Configuración de la VM e instalación de herramientas |
-| `screenshots/02_base_datos/` | Configuración de Supabase y PostgreSQL |
-| `screenshots/03_n8n/` | Instalación y automatizaciones |
-| `screenshots/04_rag/` | Procesamiento documental y recuperación de información |
-| `screenshots/05_backend/` | Desarrollo y pruebas del backend |
-| `screenshots/06_movil/` | Desarrollo de la aplicación móvil |
-| `screenshots/07_pruebas/` | Pruebas funcionales e integración |
-
-## Evidencias del desarrollo
-
-Las evidencias del proyecto se organizan por etapas:
-
-| Carpeta | Contenido |
-|---|---|
-| `screenshots/01_entorno/` | Configuración de la VM e instalación de herramientas |
-| `screenshots/02_base_datos/` | Configuración de Supabase y PostgreSQL |
-| `screenshots/03_n8n/` | Instalación y automatizaciones |
-| `screenshots/04_rag/` | Procesamiento documental y recuperación de información |
-| `screenshots/05_backend/` | Desarrollo y pruebas del backend |
-| `screenshots/06_movil/` | Desarrollo de la aplicación móvil |
-| `screenshots/07_pruebas/` | Pruebas funcionales e integración |
