@@ -39,3 +39,8 @@ credentials/
 # Documentos academicos originales y datos procesados
 rag/documents/
 rag/processed/
+.venv-embeddings/
+
+# Configuracion local del servidor n8n (no incluir en el repositorio)
+n8n/docker-compose.yml
+n8n/.env.example
