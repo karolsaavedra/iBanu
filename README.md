@@ -282,7 +282,15 @@ La interfaz permite que el estudiante:
 
 **Evidencias:** pantalla de inicio, conversación y respuestas de iBanú.
 
-<!-- Insertar fotografías de la aplicación móvil -->
+<img width="739" height="1600" alt="WhatsApp Image 2026-11-14 at 8 59 03 PM" src="https://github.com/user-attachments/assets/e0d1ec7e-33e9-4fb6-a40b-9e3adaed9595" />
+
+<img width="739" height="1600" alt="WhatsApp Image 2026-11-14 at 8 59 03 PM (1)" src="https://github.com/user-attachments/assets/4baaf193-aa08-4ccc-bc3c-6aab9af79c00" />
+
+<img width="739" height="1600" alt="WhatsApp Image 2026-11-14 at 8 59 03 PM (2)" src="https://github.com/user-attachments/assets/75492913-d4a8-480b-b907-9ab7628bea63" />
+
+<img width="739" height="1600" alt="WhatsApp Image 2026-11-14 at 8 59 04 PM" src="https://github.com/user-attachments/assets/a664ca84-d2ec-42e3-ae32-d8fc24a0801d" />
+
+
 
 ## 13. Despliegue y ejecución
 
