@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,84 +10,120 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
-
-const preguntas = [
-  { icono: '📚', texto: '¿Qué materias podría cursar el próximo semestre?' },
-  { icono: '🗓️', texto: '¿Cuál es mi horario de clases?' },
-  { icono: '📖', texto: '¿Qué materias estoy cursando actualmente?' },
-  { icono: '📊', texto: '¿Cómo va mi historial académico?' },
-  { icono: '📝', texto: '¿Qué materias tengo pendientes?' },
-  { icono: '👨‍🏫', texto: '¿Qué profesores dictan mis asignaturas?' },
-  { icono: '⏰', texto: '¿Cuáles son los turnos de inscripción disponibles?' },
-];
+import Markdown from 'react-native-markdown-display';
+import {
+  ErrorApi,
+  borrarSesion,
+  consultarAgente,
+  guardarCodigo,
+  guardarSesion,
+  leerCodigoGuardado,
+  leerSesion,
+} from './src/api';
+import { CONSULTAS } from './src/consultas';
+import { MAX_MENSAJE } from './src/config';
 
 type Mensaje = {
   id: number;
   texto: string;
   usuario: boolean;
+  fuentes?: string[];
+  bloqueado?: boolean;
+  motivo?: string | null;
+  error?: boolean;
 };
+
+const reglasMarkdown = StyleSheet.create({
+  body: { color: '#334E68', fontSize: 14, lineHeight: 21 },
+  strong: { fontWeight: '800', color: '#102A43' },
+  heading1: { color: '#102A43', fontSize: 18, fontWeight: '800', marginVertical: 6 },
+  heading2: { color: '#102A43', fontSize: 16, fontWeight: '800', marginVertical: 6 },
+  heading3: { color: '#102A43', fontSize: 15, fontWeight: '700', marginVertical: 4 },
+  bullet_list: { marginVertical: 4 },
+  ordered_list: { marginVertical: 4 },
+  code_inline: { backgroundColor: '#E2F3F1', color: '#102A43', borderRadius: 4 },
+  fence: { backgroundColor: '#F4F7FA', color: '#102A43', borderRadius: 8, padding: 8 },
+  table: { borderColor: '#D9E2EC' },
+  th: { padding: 4, fontWeight: '700' },
+  td: { padding: 4 },
+  link: { color: '#168C83' },
+  paragraph: { marginTop: 0, marginBottom: 8 },
+});
 
 export default function App() {
   const [codigo, setCodigo] = useState('');
   const [sesion, setSesion] = useState(false);
+  const [sesionId, setSesionId] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState('');
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [iniciando, setIniciando] = useState(true);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
-  const iniciarSesion = () => {
-    if (!/^U\d{8}$/.test(codigo.trim())) {
-      alert('Ingresa un código válido. Ejemplo: U00112048');
+  useEffect(() => {
+    (async () => {
+      const guardado = await leerCodigoGuardado();
+      if (guardado) {
+        setCodigo(guardado);
+        setSesionId(await leerSesion(guardado));
+        setSesion(true);
+      }
+      setIniciando(false);
+    })();
+  }, []);
+
+  const iniciarSesion = async () => {
+    const limpio = codigo.trim().toUpperCase();
+    if (!/^[A-Z0-9]{4,20}$/.test(limpio)) {
+      Alert.alert('Código no válido', 'Ingresa tu código de estudiante. Ejemplo: U00112048');
       return;
     }
-    setCodigo(codigo.trim().toUpperCase());
+    setCodigo(limpio);
+    setSesionId(await leerSesion(limpio));
+    await guardarCodigo(limpio);
     setSesion(true);
+  };
+
+  const salir = async () => {
+    await guardarCodigo(null);
+    setSesion(false);
+    setMensajes([]);
+    setCodigo('');
+    setSesionId(null);
+  };
+
+  const nuevaConversacion = async () => {
+    await borrarSesion(codigo);
+    setSesionId(null);
+    setMensajes([]);
   };
 
   const enviarMensaje = async (texto: string) => {
     const consulta = texto.trim();
     if (!consulta || cargando) return;
 
-    setMensajes((prev) => [
-      ...prev,
-      { id: Date.now(), texto: consulta, usuario: true },
-    ]);
+    setMensajes((prev) => [...prev, { id: Date.now(), texto: consulta, usuario: true }]);
     setMensaje('');
     setCargando(true);
 
     try {
-      if (!API_URL) {
-        throw new Error('La dirección del backend todavía no está configurada.');
+      const r = await consultarAgente(codigo, consulta, sesionId);
+      if (r.sesionId) {
+        setSesionId(r.sesionId);
+        await guardarSesion(codigo, r.sesionId);
       }
-
-      const response = await fetch(`${API_URL}/chat/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          codigo_estudiante: codigo,
-          mensaje: consulta,
-          historial: mensajes.slice(-8).map((m) => ({
-            rol: m.usuario ? 'estudiante' : 'asistente',
-            contenido: m.texto,
-          })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'No fue posible procesar la consulta.');
-      }
-
       setMensajes((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
-          texto: data.respuesta || 'No recibí una respuesta del asistente.',
+          texto: r.texto,
           usuario: false,
+          fuentes: r.fuentes,
+          bloqueado: r.bloqueado,
+          motivo: r.motivo,
         },
       ]);
     } catch (error) {
@@ -95,16 +131,25 @@ export default function App() {
         ...prev,
         {
           id: Date.now() + 1,
-          texto: error instanceof Error
-            ? error.message
-            : 'Ocurrió un error de conexión.',
+          texto:
+            error instanceof ErrorApi ? error.message : 'Ocurrió un error inesperado. Intenta de nuevo.',
           usuario: false,
+          error: true,
         },
       ]);
     } finally {
       setCargando(false);
     }
   };
+
+  if (iniciando) {
+    return (
+      <SafeAreaView style={[styles.fondo, { justifyContent: 'center' }]}>
+        <StatusBar style="light" />
+        <ActivityIndicator color="#FFFFFF" />
+      </SafeAreaView>
+    );
+  }
 
   if (!sesion) {
     return (
@@ -130,14 +175,16 @@ export default function App() {
               value={codigo}
               onChangeText={setCodigo}
               autoCapitalize="characters"
-              maxLength={9}
+              autoCorrect={false}
+              maxLength={20}
+              onSubmitEditing={iniciarSesion}
             />
             <TouchableOpacity style={styles.botonPrincipal} onPress={iniciarSesion}>
               <Text style={styles.textoBoton}>Continuar</Text>
               <Text style={styles.flecha}>→</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.pieLogin}>Asistente académico · Ingeniería de Sistemas</Text>
+          <Text style={styles.pieLogin}>Asistente académico | Ingeniería de Sistemas</Text>
         </View>
       </SafeAreaView>
     );
@@ -153,16 +200,17 @@ export default function App() {
           </View>
           <View>
             <Text style={styles.headerNombre}>iBanú</Text>
-            <Text style={styles.estado}>● Asistente académico</Text>
+            <Text style={styles.estado}>● {codigo}</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={() => {
-          setSesion(false);
-          setMensajes([]);
-          setCodigo('');
-        }}>
-          <Text style={styles.cerrarSesion}>Salir</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity onPress={nuevaConversacion}>
+            <Text style={styles.cerrarSesion}>Nueva</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={salir}>
+            <Text style={styles.cerrarSesion}>Salir</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -171,60 +219,80 @@ export default function App() {
         keyboardVerticalOffset={10}
       >
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContenido}
           keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
-          <View style={styles.bienvenida}>
-            <Text style={styles.saludo}>Hola, estudiante 👋</Text>
-            <Text style={styles.bienvenidaTexto}>
-              Soy iBanú. Estoy aquí para ayudarte con tu vida académica.
-            </Text>
-            <Text style={styles.codigoActivo}>Código: {codigo}</Text>
-          </View>
-
           {mensajes.length === 0 && (
-            <View style={styles.frecuentes}>
-              <Text style={styles.seccionTitulo}>¿Qué te gustaría consultar?</Text>
-              <Text style={styles.seccionDescripcion}>
-                Puedes elegir una pregunta o escribir la tuya.
+            <View style={styles.bienvenida}>
+              <Text style={styles.saludo}>Hola, estudiante 👋</Text>
+              <Text style={styles.bienvenidaTexto}>
+                Soy iBanú. Elige una consulta o escríbeme tu pregunta.
               </Text>
-              {preguntas.map((pregunta, index) => (
+            </View>
+          )}
+
+          <View style={styles.frecuentes}>
+            <Text style={styles.seccionTitulo}>Consultas rápidas</Text>
+            <View style={styles.rejilla}>
+              {CONSULTAS.map((c) => (
                 <TouchableOpacity
-                  key={index}
-                  style={styles.pregunta}
-                  onPress={() => enviarMensaje(pregunta.texto)}
+                  key={c.clave}
+                  style={[styles.tarjeta, cargando && styles.botonDesactivado]}
+                  onPress={() => enviarMensaje(c.pregunta)}
                   disabled={cargando}
                 >
-                  <Text style={styles.preguntaIcono}>{pregunta.icono}</Text>
-                  <Text style={styles.preguntaTexto}>{pregunta.texto}</Text>
-                  <Text style={styles.preguntaFlecha}>›</Text>
+                  <Text style={styles.preguntaIcono}>{c.icono}</Text>
+                  <Text style={styles.preguntaTexto}>{c.titulo}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-          )}
+          </View>
 
           {mensajes.map((item) => (
             <View
               key={item.id}
-              style={[
-                styles.filaMensaje,
-                item.usuario ? styles.filaUsuario : styles.filaBot,
-              ]}
+              style={[styles.filaMensaje, item.usuario ? styles.filaUsuario : styles.filaBot]}
             >
               {!item.usuario && (
                 <View style={styles.avatarBot}>
                   <Text style={styles.avatarTexto}>iB</Text>
                 </View>
               )}
-              <View style={[
-                styles.burbuja,
-                item.usuario ? styles.burbujaUsuario : styles.burbujaBot,
-              ]}>
-                <Text style={[
-                  styles.textoMensaje,
-                  item.usuario ? styles.textoUsuario : styles.textoBot,
-                ]}>{item.texto}</Text>
+              <View
+                style={[
+                  styles.burbuja,
+                  item.usuario ? styles.burbujaUsuario : styles.burbujaBot,
+                  item.error && styles.burbujaError,
+                  item.bloqueado && styles.burbujaBloqueada,
+                ]}
+              >
+                {item.usuario ? (
+                  <Text style={[styles.textoMensaje, styles.textoUsuario]}>{item.texto}</Text>
+                ) : item.error ? (
+                  <Text style={[styles.textoMensaje, styles.textoError]}>{item.texto}</Text>
+                ) : (
+                  <>
+                    {item.bloqueado && (
+                      <Text style={styles.avisoBloqueo}>
+                        Consulta no permitida{item.motivo ? `: ${item.motivo}` : ''}
+                      </Text>
+                    )}
+                    <Markdown style={reglasMarkdown}>{item.texto}</Markdown>
+                    {!!item.fuentes?.length && (
+                      <View style={styles.fuentes}>
+                        <Text style={styles.fuentesTitulo}>Fuentes</Text>
+                        {item.fuentes.map((f, i) => (
+                          <Text key={i} style={styles.fuenteItem}>
+                            • {f}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                )}
               </View>
             </View>
           ))}
@@ -232,7 +300,9 @@ export default function App() {
           {cargando && (
             <View style={styles.cargando}>
               <ActivityIndicator color="#168C83" />
-              <Text style={styles.textoCargando}>iBanú está preparando tu respuesta...</Text>
+              <Text style={styles.textoCargando}>
+                iBanú está analizando tu información, puede tardar hasta 30 segundos...
+              </Text>
             </View>
           )}
         </ScrollView>
@@ -245,7 +315,7 @@ export default function App() {
             value={mensaje}
             onChangeText={setMensaje}
             multiline
-            maxLength={1000}
+            maxLength={MAX_MENSAJE}
           />
           <TouchableOpacity
             style={[styles.botonEnviar, (!mensaje.trim() || cargando) && styles.botonDesactivado]}
@@ -255,13 +325,29 @@ export default function App() {
             <Text style={styles.enviarIcono}>↑</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.notaDatos}>Información académica de demostración · Datos sintéticos</Text>
+        <Text style={styles.notaDatos}>Información académica de demostración | Datos sintéticos</Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+const extraEstilos = {
+  rejilla: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 12 },
+  tarjeta: {
+    width: '48.5%', backgroundColor: '#FFFFFF', borderRadius: 13, paddingVertical: 14,
+    alignItems: 'center', marginBottom: 9, borderWidth: 1, borderColor: '#E5EBF0',
+  },
+  burbujaError: { backgroundColor: '#FDECEA' },
+  burbujaBloqueada: { backgroundColor: '#FFF6E5' },
+  textoError: { color: '#9B2C2C' },
+  avisoBloqueo: { color: '#B7791F', fontWeight: '800', fontSize: 12, marginBottom: 6 },
+  fuentes: { borderTopWidth: 1, borderTopColor: '#E5EBF0', marginTop: 6, paddingTop: 8 },
+  fuentesTitulo: { color: '#168C83', fontSize: 11, fontWeight: '800', marginBottom: 3 },
+  fuenteItem: { color: '#627D98', fontSize: 11, lineHeight: 16 },
+} as const;
+
 const styles = StyleSheet.create({
+  ...extraEstilos,
   fondo: { flex: 1, backgroundColor: '#102A43' },
   fondoClaro: { flex: 1, backgroundColor: '#F4F7FA' },
   loginContainer: { flex: 1, justifyContent: 'center', paddingHorizontal: 28 },
@@ -318,7 +404,7 @@ const styles = StyleSheet.create({
     padding: 14, borderRadius: 13, marginBottom: 9, borderWidth: 1, borderColor: '#E5EBF0',
   },
   preguntaIcono: { fontSize: 19, marginRight: 12 },
-  preguntaTexto: { flex: 1, color: '#334E68', fontSize: 13, fontWeight: '600', lineHeight: 19 },
+  preguntaTexto: { color: '#334E68', fontSize: 13, fontWeight: '600', lineHeight: 19 },
   preguntaFlecha: { color: '#168C83', fontSize: 23, marginLeft: 8 },
   filaMensaje: { flexDirection: 'row', marginBottom: 14, alignItems: 'flex-end' },
   filaUsuario: { justifyContent: 'flex-end' },
@@ -328,7 +414,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginRight: 8,
   },
   avatarTexto: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
-  burbuja: { maxWidth: '83%', padding: 13, borderRadius: 16 },
+  burbuja: { maxWidth: '88%', padding: 13, borderRadius: 16 },
   burbujaUsuario: { backgroundColor: '#168C83', borderBottomRightRadius: 4 },
   burbujaBot: { backgroundColor: '#FFFFFF', borderBottomLeftRadius: 4 },
   textoMensaje: { fontSize: 14, lineHeight: 21 },
